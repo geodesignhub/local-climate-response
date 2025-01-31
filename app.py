@@ -127,22 +127,6 @@ def get_existing_buildings_shadow():
         shadow = {"type": "FeatureCollection", "features": []}
     return Response(json.dumps(shadow), status=200, mimetype=MIMETYPE)
 
-
-@app.route("/get_downloaded_roads", methods=["GET"])
-def get_downloaded_roads():
-    roads_key = request.args.get("roads_key", "0")
-    roads_session_exists = redis.exists(roads_key)
-    if roads_session_exists:
-        roads_data_key = redis.get(roads_key)
-        r_raw = redis.get(roads_data_key)
-        roads = json.loads(r_raw.decode("utf-8"))
-    else:
-        roads = {"type": "FeatureCollection", "features": []}
-
-    rds = json.dumps(roads)
-    return Response(rds, status=200, mimetype=MIMETYPE)
-
-
 @app.route("/get_downloaded_trees", methods=["GET"])
 def get_downloaded_trees():
     trees_key = request.args.get("trees_key", "0")
@@ -318,7 +302,7 @@ def generate_design_shadow():
             shadow_date_time = arrow.get(r_date_time).format("YYYY-MM-DDTHH:mm:ss")
     except KeyError:
         current_year = arrow.now().year
-        august_6_date = "{year}-08-06T10:10:00".format(year=current_year)
+        august_6_date = f"{current_year}-08-06T10:10:00"
         shadow_date_time = august_6_date
 
     my_view_helper = ViewDataGenerator(
@@ -402,8 +386,9 @@ def generate_design_shadow():
 @app.route("/get_drawn_trees_shadows", methods=["GET"])
 def get_drawn_trees_shadows():
     trees_key = request.args.get("drawn_trees_shadows_key", "0")
+    
+    trees_session_exists = redis.exists(trees_key) 
 
-    trees_session_exists = redis.exists(trees_key)
     if trees_session_exists:
         trees_data_raw = redis.get(trees_key)
         trees = json.loads(trees_data_raw.decode("utf-8"))
@@ -421,9 +406,10 @@ def generate_drawn_trees_shadow():
 
     unprocessed_tree_geojson = geojson_payload["unprocessed_tree_geojson"]
     session_id = request.args.get("session_id")
-
+    state_id = request.args.get("state_id")
+    print(session_id,state_id)
     kickoff_drawn_trees_shadow_job(
-        unprocessed_drawn_trees=unprocessed_tree_geojson, session_id=session_id
+        unprocessed_drawn_trees=unprocessed_tree_geojson, session_id=session_id, state_id=state_id
     )
 
     return Response({}, status=200, mimetype=MIMETYPE)
